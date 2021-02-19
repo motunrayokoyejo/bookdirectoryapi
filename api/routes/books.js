@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router();
 const mongoose = require('mongoose');
+const checkAuth = require('../middleware/check-auth');
 
 
 const Book = require('../models/book');
@@ -33,7 +34,7 @@ router.get('/',(req, res, next) => {
     });
     });
 
-router.post('/',(req, res, next) => {
+router.post('/', checkAuth, (req, res, next) => {
     const book = new Book({
         _id: new mongoose.Types.ObjectId(),
         name: req.body.name
@@ -82,7 +83,7 @@ router.post('/',(req, res, next) => {
     });
     });
 
-    router.patch('/:bookId',(req,res,next) => {
+    router.patch('/:bookId', checkAuth,(req,res,next) => {
         const id = req.params.bookId;
     const updateOps = {};
     for (const ops of req.body){
@@ -96,7 +97,7 @@ router.post('/',(req, res, next) => {
             message: 'book updated',
             request: {
                 type: 'GET',
-                url: 'http://localhost:3000/books/'
+                url: 'http://localhost:3000/books/' + id
             }
         });
     })
@@ -108,7 +109,7 @@ router.post('/',(req, res, next) => {
     });
     });
 
-    router.delete('/:bookId',(req,res,next) => {
+    router.delete('/:bookId', checkAuth, (req,res,next) => {
         const id = req.params.productId;
         Book.remove({_id: id}).exec()
         .then(result => {
