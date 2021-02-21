@@ -3,9 +3,39 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const checkAuth = require('../middleware/check-auth');
 
 
 const User = require('../models/user')
+
+
+router.get('/',(req, res, next) => {
+    User.find()
+    .select('email _id')
+    .exec()
+    .then(docs => {
+        const response = {
+            count: docs.length,
+            users: docs.map(doc => {
+                return {
+                    email: doc.email,
+                    _id: doc._id,
+                    request: {
+                        type: 'GET',
+                        url: 'http://localhost:3000/users/' 
+                    }
+                }
+            })
+        }
+        res.status(200).json(response);
+    })
+    .catch(err => {
+        console.log(err);
+        res.status(500).json({
+            error:err
+        });
+    });
+    });
 
 router.post('/signup', (req, res, next) => {
     User.find({ email: req.body.email })
@@ -32,7 +62,8 @@ router.post('/signup', (req, res, next) => {
                 .then( result => {
                     console.log(result)
                     res.status(201).json({
-                        message: 'User created successfully'
+                        message: 'User created successfully',
+                        id: result._id
                     });
                 })
                 .catch(err => {
@@ -92,7 +123,7 @@ router.post('/login', (req, res, next) => {
 
 
 
-router.delete("/:userId", (req, res, next) => {
+router.delete("/:userId", checkAuth, (req, res, next) => {
     User.remove({ _id: req.params.userId })
       .exec()
       .then(result => {

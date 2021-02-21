@@ -13,7 +13,7 @@ router.get('/',(req, res, next) => {
     .then(docs => {
         const response = {
             count: docs.length,
-            products: docs.map(doc => {
+            books: docs.map(doc => {
                 return {
                     name: doc.name,
                     _id: doc._id,
@@ -83,13 +83,13 @@ router.post('/', checkAuth, (req, res, next) => {
     });
     });
 
-    router.patch('/:bookId', checkAuth,(req,res,next) => {
+    router.put('/:bookId',(req,res,next) => {
         const id = req.params.bookId;
     const updateOps = {};
-    for (const ops of req.body){
+    for (const ops in req.body){
         updateOps[ops.propName] = ops.value;
     }
-    Book.updateOne({_id: id}, {$set: updateOps})
+    Book.findOneAndUpdate({_id: id}, {$set: updateOps})
     .exec()
     .then(result => {
         console.log(result); 
@@ -110,7 +110,7 @@ router.post('/', checkAuth, (req, res, next) => {
     });
 
     router.delete('/:bookId', checkAuth, (req,res,next) => {
-        const id = req.params.productId;
+        const id = req.params.bookId;
         Book.remove({_id: id}).exec()
         .then(result => {
             res.status(200).json({
