@@ -83,13 +83,14 @@ router.post('/', checkAuth, (req, res, next) => {
     });
     });
 
-    router.put('/:bookId',(req,res,next) => {
+    router.patch('/:bookId', checkAuth,(req,res,next) => {
+        console.log(req.body)
         const id = req.params.bookId;
     const updateOps = {};
     for (const ops in req.body){
         updateOps[ops.propName] = ops.value;
     }
-    Book.findOneAndUpdate({_id: id}, {$set: updateOps})
+    Book.findOneAndUpdate({_id: id}, {name: req.body.name})
     .exec()
     .then(result => {
         console.log(result); 
