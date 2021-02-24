@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 
 const bookRoutes = require('./api/routes/books');
 const userRoutes = require('./api/routes/users');
+const sequelRoutes = require('./api/routes/sequels')
 
 mongoose.connect('mongodb+srv://motun:motunrayo@node-restapi.uxluz.mongodb.net/booksDB?retryWrites=true&w=majority',
 { 
@@ -37,21 +38,22 @@ app.use((req, res, next) => {
 
 app.use('/books', bookRoutes);
 app.use('/users', userRoutes);
+app.use('/sequels', sequelRoutes);
 
-// app.use((req, res, next) => {
-//     const error = new Error("Not found");
-//     error.status = 404;
-//     next(error);
-//   });
+app.use((req, res, next) => {
+    const error = new Error("Not found");
+    error.status = 404;
+    next(error);
+  });
   
-//   app.use((error, req, res, next) => {
-//     res.status(error.status || 500);
-//     res.json({
-//       error: {
-//         message: error.message
-//       }
-//     });
-//   });
+  app.use((error, req, res, next) => {
+    res.status(error.status || 500);
+    res.json({
+      error: {
+        message: error.message
+      }
+    });
+  });
 
 
 module.exports = app;

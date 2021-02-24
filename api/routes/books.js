@@ -5,10 +5,11 @@ const checkAuth = require('../middleware/check-auth');
 
 
 const Book = require('../models/book');
+const Sequel = require('../models/sequel');
 
 router.get('/',(req, res, next) => {
     Book.find()
-    .select('name _id')
+    .select('-__v')
     .exec()
     .then(docs => {
         const response = {
@@ -17,6 +18,7 @@ router.get('/',(req, res, next) => {
                 return {
                     name: doc.name,
                     _id: doc._id,
+                    sequelObj: doc.sequelObj,
                     request: {
                         type: 'GET',
                         url: 'http://localhost:3000/books/' + doc._id
@@ -24,7 +26,8 @@ router.get('/',(req, res, next) => {
                 }
             })
         }
-        res.status(200).json(response);
+        res.status(200).json({count: docs.length,
+            books: docs});
     })
     .catch(err => {
         console.log(err);
@@ -34,10 +37,26 @@ router.get('/',(req, res, next) => {
     });
     });
 
-router.post('/', checkAuth, (req, res, next) => {
+router.post('/', checkAuth, async(req, res, next) => {
+    let sequelData;
+    try{
+        sequelData = await Sequel.findOne({_id: req.body.sequelObj})
+        console.log(sequelData);
+    } catch(err){
+        return res.status(404).json({
+            message: "Sequel not found",
+            err
+        });
+    }
+    if (!sequelData) {
+        return res.status(404).json({
+            message: "Sequel not found"
+        });
+    }
     const book = new Book({
-        _id: new mongoose.Types.ObjectId(),
-        name: req.body.name
+        name: req.body.name,
+        sequelObj : sequelData._id
+
     });
     book.save()
     .then(result => {
@@ -47,6 +66,7 @@ router.post('/', checkAuth, (req, res, next) => {
             createdBook: {
                 name: result.name,
                 _id: result._id,
+                sequelId: req.body.sequelId,
                 request: {
                     type: 'GET',
                     url: 'http://localhost:3000/books/' + result._id
@@ -57,22 +77,55 @@ router.post('/', checkAuth, (req, res, next) => {
     })
     });   
     
-   router.get('/:bookId', (req, res, next) => {
+   router.get('/:bookId', checkAuth, (req, res, next) => {
     const id = req.params.bookId;
-    Book.findById(id)
-    .select('name _id')
-    .exec()
-    .then(doc => {
-        console.log('From database', doc);
-        if (doc) {
-            res.status(200).json({
-                product: doc,
-                request: {
-                    type: 'GET',
-                    description: 'Get all products',
-                    url: 'http://localhost/products'   
-                }
+    // using the normal book.find method
+    // Book.findById(id)
+    // .select('name _id')
+    // .exec()
+    // .then(doc => {
+    //     console.log('From database', doc);
+    //     if (doc) {
+    //         res.status(200).json({
+    //             product: doc,
+    //             request: {
+    //                 type: 'GET',
+    //                 description: 'Get all products',
+    //                 url: 'http://localhost/products'   
+    //             }
+    //         })
+    //     } else {
+    //         res.status(404).json({ message: 'No valid entry for provided entry'})
+    //     }
+    // })
+    // .catch(err => {
+    //     console.log(err);
+    //     res.status(500).json({error: err});
+    // });
+
+    //using the mongodb aggregation method.
+
+    Book.findOne({ _id: id}, (err, result) => {
+        if (result.length) {
+            Book.aggregate({$match: {_id: {$in: id}}}, (payload) => {
+
+                return payload;
             })
+        }
+    })
+    .select('-__v')
+    .exec() 
+    .then(docs => {
+        console.log('From database', docs);
+        if (docs) {
+            res.status(200).json({
+                            books: docs,
+                        request: {
+                                type: 'GET',
+                                description: 'Get all books',
+                                url: 'http://localhost:3000/books'   
+                            }
+                        })
         } else {
             res.status(404).json({ message: 'No valid entry for provided entry'})
         }
@@ -110,7 +163,7 @@ router.post('/', checkAuth, (req, res, next) => {
     });
     });
 
-    router.delete('/:bookId', checkAuth, (req,res,next) => {
+    router.delete('/:bookId', checkAuth,(req,res,next) => {
         const id = req.params.bookId;
         Book.remove({_id: id}).exec()
         .then(result => {
@@ -130,5 +183,7 @@ router.post('/', checkAuth, (req, res, next) => {
             });
         })
     });
+    
+    
 
     module.exports = router;
