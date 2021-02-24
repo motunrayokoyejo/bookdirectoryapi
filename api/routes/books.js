@@ -67,7 +67,7 @@ router.post('/', checkAuth, async(req, res, next) => {
                 name: result.name,
                 _id: result._id,
                 sequelId: req.body.sequelId,
-                request: {
+        request: {
                     type: 'GET',
                     url: 'http://localhost:3000/books/' + result._id
                 }
