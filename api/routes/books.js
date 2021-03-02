@@ -5,9 +5,10 @@ const checkAuth = require('../middleware/check-auth');
 
 
 const Book = require('../models/book');
+const { db } = require('../models/sequel');
 const Sequel = require('../models/sequel');
 
-router.get('/',(req, res, next) => {
+router.get('/',checkAuth,(req, res, next) => {
     Book.find()
     .select('-__v')
     .exec()
@@ -37,7 +38,7 @@ router.get('/',(req, res, next) => {
     });
     });
 
-router.post('/', checkAuth, async(req, res, next) => {
+router.post('/', checkAuth,async(req, res, next) => {
     let sequelData;
     try{
         sequelData = await Sequel.findOne({_id: req.body.sequelObj})
@@ -77,55 +78,23 @@ router.post('/', checkAuth, async(req, res, next) => {
     })
     });   
     
-   router.get('/:bookId', checkAuth, (req, res, next) => {
+   router.get('/:bookId',checkAuth, (req, res, next) => {
     const id = req.params.bookId;
     // using the normal book.find method
-    // Book.findById(id)
-    // .select('name _id')
-    // .exec()
-    // .then(doc => {
-    //     console.log('From database', doc);
-    //     if (doc) {
-    //         res.status(200).json({
-    //             product: doc,
-    //             request: {
-    //                 type: 'GET',
-    //                 description: 'Get all products',
-    //                 url: 'http://localhost/products'   
-    //             }
-    //         })
-    //     } else {
-    //         res.status(404).json({ message: 'No valid entry for provided entry'})
-    //     }
-    // })
-    // .catch(err => {
-    //     console.log(err);
-    //     res.status(500).json({error: err});
-    // });
-
-    //using the mongodb aggregation method.
-
-    Book.findOne({ _id: id}, (err, result) => {
-        if (result.length) {
-            Book.aggregate({$match: {_id: {$in: id}}}, (payload) => {
-
-                return payload;
-            })
-        }
-    })
-    .select('-__v')
-    .exec() 
-    .then(docs => {
-        console.log('From database', docs);
-        if (docs) {
+    Book.findById(id)
+    .select('name _id')
+    .exec()
+    .then(doc => {
+        console.log('From database', doc);
+        if (doc) {
             res.status(200).json({
-                            books: docs,
-                        request: {
-                                type: 'GET',
-                                description: 'Get all books',
-                                url: 'http://localhost:3000/books'   
-                            }
-                        })
+                product: doc,
+                request: {
+                    type: 'GET',
+                    description: 'Get all products',
+                    url: 'http://localhost/products'   
+                }
+            })
         } else {
             res.status(404).json({ message: 'No valid entry for provided entry'})
         }
@@ -134,6 +103,46 @@ router.post('/', checkAuth, async(req, res, next) => {
         console.log(err);
         res.status(500).json({error: err});
     });
+
+    //using the mongodb aggregation method.
+
+    // Book.findOne({ _id: id}, (err, result) => {
+    //     if (result.length) {
+    //         Book.aggregate({$match: {_id: {$in: id}}}, (payload) => {
+
+    //             return payload;
+    //         })
+    //     }
+    // })
+    // .select('-__v')
+    // .exec() 
+    // Book.aggregate([
+    //     {
+    //         $match: {
+    //             _id: req.params.bookId,
+                
+    //         }
+    //     }
+    // ])
+    // .then(docs => {
+    //     console.log('From database', docs);
+    //     if (docs) {
+    //         res.status(200).json({
+    //                         books: docs,
+    //                     request: {
+    //                             type: 'GET',
+    //                             description: 'Get all books',
+    //                             url: 'http://localhost:3000/books'   
+    //                         }
+    //                     })
+    //     } else {
+    //         res.status(404).json({ message: 'No valid entry for provided entry'})
+    //     }
+    // })
+    // .catch(err => {
+    //     console.log(err);
+    //     res.status(500).json({error: err});
+    // });
     });
 
     router.patch('/:bookId', checkAuth,(req,res,next) => {
@@ -162,6 +171,30 @@ router.post('/', checkAuth, async(req, res, next) => {
         });
     });
     });
+
+    // router.get('/search', (req,res,next) => {
+    //     db.Sequel.aggregate({
+    //         $lookup:{
+    //             from: 'Book',
+    //             localField: 'sequelObj',
+    //             foreignField: 'id',
+    //             as: 'SequelBook'
+    //         }
+    //     })
+    // })
+
+    router.get('/getbooks', (req,res,next) => {
+        db.Book.aggregate([
+            {$lookup: {
+                from: 'Sequel',
+                localField: 'sequelObj',
+                foreignField: '_id',
+                as: 'relation'
+
+            }}
+    
+        ])
+    })
 
     router.delete('/:bookId', checkAuth,(req,res,next) => {
         const id = req.params.bookId;
