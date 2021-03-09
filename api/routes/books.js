@@ -8,27 +8,21 @@ const Book = require('../models/book');
 const { db } = require('../models/sequel');
 const Sequel = require('../models/sequel');
 
-router.get('/',checkAuth,(req, res, next) => {
-    Book.find()
-    .select('-__v')
+router.get('/',checkAuth, async(req, res, next) => {
+    await Book.aggregate([
+        {
+            $lookup: {
+            from: 'sequels',
+            localField: 'sequelObj',
+            foreignField: '_id',
+            as: 'sequel'
+            }
+        },
+    ])
     .exec()
-    .then(docs => {
-        const response = {
-            count: docs.length,
-            books: docs.map(doc => {
-                return {
-                    name: doc.name,
-                    _id: doc._id,
-                    sequelObj: doc.sequelObj,
-                    request: {
-                        type: 'GET',
-                        url: 'http://localhost:3000/books/' + doc._id
-                    }
-                }
-            })
-        }
-        res.status(200).json({count: docs.length,
-            books: docs});
+    .then((docs) => {
+        res.status(200).json(docs)
+           
     })
     .catch(err => {
         console.log(err);
@@ -183,19 +177,7 @@ router.post('/', checkAuth,async(req, res, next) => {
     //     })
     // })
 
-    router.get('/getbooks', (req,res,next) => {
-        db.Book.aggregate([
-            {$lookup: {
-                from: 'Sequel',
-                localField: 'sequelObj',
-                foreignField: '_id',
-                as: 'relation'
-
-            }}
-    
-        ])
-    })
-
+  
     router.delete('/:bookId', checkAuth,(req,res,next) => {
         const id = req.params.bookId;
         Book.remove({_id: id}).exec()
